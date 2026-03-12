@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Speech System</title>
+</head>
+
+<body>
+
+    <h2>🎤 Voice to Text (Whisper Backend)</h2>
+
+    <button onclick="startRecording()">Start Recording</button>
+    <button onclick="stopRecording()">Stop Recording</button>
+
+    <h3>Speech Result:</h3>
+    <p id="result"></p>
+
+    <hr>
+
+    <h2>🔊 Text to Voice</h2>
+
+    <textarea id="manualText" rows="4" cols="50" placeholder="Type text here or use speech result..."></textarea>
+
+    <br><br>
+
+    <button onclick="convertToSpeech()">Convert To Voice</button>
+
+    <br><br>
+
+    <audio id="audioPlayer" controls></audio>
+
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+
+        // 🎤 START RECORDING
+        async function startRecording() {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+
+            mediaRecorder.ondataavailable = event => {
+                if (event.data.size > 0) {
+                    audioChunks.push(event.data);
+                }
+            };
+
+            mediaRecorder.start();
+            console.log("Recording started...");
+        }
+
+        // 🎤 STOP RECORDING
+        async function stopRecording() {
+
+            mediaRecorder.onstop = async () => {
+
+                const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+
+                const formData = new FormData();
+                formData.append("audio", audioBlob, "recording.webm");
+
+                try {
+                    const response = await fetch("/voice-to-text", {
+                        method: "POST",
+                        body: formData
+                    });
+
+                    const data = await response.json();
+
+                    document.getElementById("result").innerText = data.text;
+
+                    // Auto copy to textarea
+                    document.getElementById("manualText").value = data.text;
+
+                } catch (error) {
+                    alert("Error converting speech to text");
+                    console.error(error);
+                }
+            };
+
+            mediaRecorder.stop();
+            console.log("Recording stopped...");
+        }
+
+        // 🔊 TEXT TO VOICE
+        async function convertToSpeech() {
+
+            const text = document.getElementById("manualText").value;
+
+            if (!text.trim()) {
+                alert("Please enter some text first!");
+                return;
+            }
+
+            try {
+                const response = await fetch("/text-to-voice", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ text: text })
+                });
+
+                if (!response.ok) {
+                    throw new Error("TTS failed");
+                }
+
+                const audioBlob = await response.blob();
+                const audioUrl = URL.createObjectURL(audioBlob);
+
+                const audioPlayer = document.getElementById("audioPlayer");
+                audioPlayer.src = audioUrl;
+                audioPlayer.play();
+
+            } catch (error) {
+                alert("Error converting text to voice");
+                console.error(error);
+            }
+        }
+    </script>
+
+</body>
+
+</html>

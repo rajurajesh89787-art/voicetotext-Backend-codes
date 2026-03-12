@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile Management</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #333;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"], input[type="email"], input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .message {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .tab {
+            display: none;
+        }
+        .tab.active {
+            display: block;
+        }
+        .tab-buttons {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        .tab-button {
+            flex: 1;
+            padding: 10px;
+            background: #f0f0f0;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px 5px 0 0;
+        }
+        .tab-button.active {
+            background: white;
+            border-bottom: 2px solid #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 User Profile Management</h1>
+
+        <div class="tab-buttons">
+            <button class="tab-button active" onclick="showTab('login')">Login</button>
+            <button class="tab-button" onclick="showTab('signup')">Sign Up</button>
+            <button class="tab-button" onclick="showTab('profile')">Profile</button>
+            <button class="tab-button" onclick="showTab('password')">Password</button>
+        </div>
+
+        <!-- LOGIN TAB -->
+        <div id="login" class="tab active">
+            <h2>Login</h2>
+            <div class="form-group">
+                <label for="login-email">Email:</label>
+                <input type="email" id="login-email" required>
+            </div>
+            <div class="form-group">
+                <label for="login-password">Password:</label>
+                <input type="password" id="login-password" required>
+            </div>
+            <button onclick="login()">Login</button>
+            <div id="login-message"></div>
+        </div>
+
+        <!-- SIGNUP TAB -->
+        <div id="signup" class="tab">
+            <h2>Sign Up</h2>
+            <div class="form-group">
+                <label for="signup-name">Full Name:</label>
+                <input type="text" id="signup-name" required>
+            </div>
+            <div class="form-group">
+                <label for="signup-email">Email:</label>
+                <input type="email" id="signup-email" required>
+            </div>
+            <div class="form-group">
+                <label for="signup-password">Password:</label>
+                <input type="password" id="signup-password" required>
+            </div>
+            <button onclick="signup()">Sign Up</button>
+            <div id="signup-message"></div>
+        </div>
+
+        <!-- PROFILE TAB -->
+        <div id="profile" class="tab">
+            <h2>Update Profile</h2>
+            <div class="form-group">
+                <label for="profile-email">Email (for identification):</label>
+                <input type="email" id="profile-email" required>
+            </div>
+            <div class="form-group">
+                <label for="profile-name">Full Name:</label>
+                <input type="text" id="profile-name" required>
+            </div>
+            <div class="form-group">
+                <label for="profile-phone">Phone:</label>
+                <input type="text" id="profile-phone">
+            </div>
+            <div class="form-group">
+                <label for="profile-location">Location:</label>
+                <input type="text" id="profile-location">
+            </div>
+            <button onclick="updateProfile()">Update Profile</button>
+            <div id="profile-message"></div>
+        </div>
+
+        <!-- PASSWORD TAB -->
+        <div id="password" class="tab">
+            <h2>Change Password</h2>
+            <div class="form-group">
+                <label for="password-email">Email:</label>
+                <input type="email" id="password-email" required>
+            </div>
+            <div class="form-group">
+                <label for="current-password">Current Password:</label>
+                <input type="password" id="current-password" required>
+            </div>
+            <div class="form-group">
+                <label for="new-password">New Password:</label>
+                <input type="password" id="new-password" required>
+            </div>
+            <button onclick="changePassword()">Change Password</button>
+            <div id="password-message"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000';
+
+        function showTab(tabName) {
+            // Hide all tabs
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+
+            // Remove active class from all buttons
+            const buttons = document.querySelectorAll('.tab-button');
+            buttons.forEach(button => button.classList.remove('active'));
+
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function showMessage(elementId, message, isSuccess = true) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = message;
+            element.className = `message ${isSuccess ? 'success' : 'error'}`;
+            setTimeout(() => {
+                element.innerHTML = '';
+                element.className = 'message';
+            }, 5000);
+        }
+
+        async function login() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showMessage('login-message', `✅ ${data.message}`);
+                    // Store user info for profile updates
+                    localStorage.setItem('userEmail', email);
+                    // Pre-fill profile form
+                    document.getElementById('profile-email').value = email;
+                    document.getElementById('password-email').value = email;
+                } else {
+                    showMessage('login-message', `❌ ${data.error}`, false);
+                }
+            } catch (error) {
+                showMessage('login-message', '❌ Network error', false);
+            }
+        }
+
+        async function signup() {
+            const full_name = document.getElementById('signup-name').value;
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/signup`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ full_name, email, password }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showMessage('signup-message', `✅ ${data.message}`);
+                    // Clear form
+                    document.getElementById('signup-name').value = '';
+                    document.getElementById('signup-email').value = '';
+                    document.getElementById('signup-password').value = '';
+                } else {
+                    showMessage('signup-message', `❌ ${data.error}`, false);
+                }
+            } catch (error) {
+                showMessage('signup-message', '❌ Network error', false);
+            }
+        }
+
+        async function updateProfile() {
+            const email = document.getElementById('profile-email').value;
+            const full_name = document.getElementById('profile-name').value;
+            const phone = document.getElementById('profile-phone').value;
+            const location = document.getElementById('profile-location').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/update-profile`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, full_name, phone, location }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showMessage('profile-message', `✅ ${data.message}`);
+                } else {
+                    showMessage('profile-message', `❌ ${data.error}`, false);
+                }
+            } catch (error) {
+                showMessage('profile-message', '❌ Network error', false);
+            }
+        }
+
+        async function changePassword() {
+            const email = document.getElementById('password-email').value;
+            const current_password = document.getElementById('current-password').value;
+            const new_password = document.getElementById('new-password').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/change-password`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, current_password, new_password }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showMessage('password-message', `✅ ${data.message}`);
+                    // Clear password fields
+                    document.getElementById('current-password').value = '';
+                    document.getElementById('new-password').value = '';
+                } else {
+                    showMessage('password-message', `❌ ${data.error}`, false);
+                }
+            } catch (error) {
+                showMessage('password-message', '❌ Network error', false);
+            }
+        }
+
+        // Load saved email on page load
+        window.onload = function() {
+            const savedEmail = localStorage.getItem('userEmail');
+            if (savedEmail) {
+                document.getElementById('profile-email').value = savedEmail;
+                document.getElementById('password-email').value = savedEmail;
+            }
+        };
+    </script>
+</body>
+</html>
